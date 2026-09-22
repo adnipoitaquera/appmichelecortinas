@@ -2692,7 +2692,7 @@ function salvarConfiguraciones() {
 }
 function aplicarPaleta(nome) {
     const paletas = {
-        padrao: { bg:'#0f0f0f', card:'#1a1a1a', input:'#2a2a2a', borda:'#3a3a3a', texto:'#f8f8f8', apoio:'#b0b0b0', destaque:'#e5c158', hover:'#d4af37' },
+        padrao: { bg:'#ffffff', card:'#ffffff', input:'#ffffff', borda:'#cbd5e1', texto:'#172033', apoio:'#475569', destaque:'#805b20', hover:'#654615' },
         amarela: { bg:'#f2c94c', card:'#ffe58a', input:'#fff3bd', borda:'#9b7200', texto:'#17130a', apoio:'#463b1b', destaque:'#17130a', hover:'#5d4700' },
         azul: { bg:'#123b66', card:'#1c588d', input:'#2c70a7', borda:'#76b9e8', texto:'#ffffff', apoio:'#d5eaff', destaque:'#ffd166', hover:'#ffe29a' },
         verde: { bg:'#164b3a', card:'#216b4e', input:'#2c825f', borda:'#8bd3ae', texto:'#ffffff', apoio:'#d8f3e5', destaque:'#ffe082', hover:'#fff0ad' },
@@ -2942,6 +2942,12 @@ function formatarFichaMateriais(){
 }
 function imprimirListaMateriais(){formatarFichaMateriais();document.body.classList.add('imprimindo-materiais');imprimirComRetorno();}
 function marcarMenu(el){
+  const destino = el?.dataset.tab || 'home';
+  document.querySelectorAll('[data-mobile-tab]').forEach(botao => {
+    if (botao.dataset.mobileTab === destino) botao.setAttribute('aria-current', 'page');
+    else botao.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.menu-conta').forEach(menu => menu.open = false);
   document.querySelectorAll('.sidebar-btn[data-tab]').forEach(b=>b.classList.remove('ativo'));
   if(el) el.classList.add('ativo');
   const label=el?.querySelector('span')?.textContent?.trim() || 'Início';
