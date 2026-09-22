@@ -581,16 +581,17 @@ let usuarioAtual = JSON.parse(sessionStorage.getItem('michele_usuario_atual') ||
 let fornecedorEditando = null;
 let profissionalEditando = null;
 
-window.onload = function() {
+function inicializarSistema() {
     restaurarCatalogoProdutos();
     atualizarOpcoesProdutos();
     normalizarDadosExistentes();
     inicializarUsuarios();
     garantirNumeracaoHistorico();
     if (usuarioAtual) iniciarAplicacao(); else mostrarLogin();
-};
+}
 
 function alternarAba(e, idAba) {
+    document.querySelector('.app-layout')?.classList.remove('menu-principal-aberto');
     const ph=document.getElementById('painel-dashboard'); if(ph) ph.style.display='none';
     document.querySelectorAll('.conteudo-aba').forEach(el => el.classList.remove('ativa'));
     document.querySelectorAll('.aba-btn').forEach(el => el.classList.remove('ativa'));
@@ -2598,6 +2599,7 @@ function iniciarAplicacao(){
     popularClientesSelect(); popularVendedores(); atualizarTabelaClientes(); atualizarFornecedores(); atualizarProfissionais(); atualizarTabelaProdutos(); atualizarTabelaPedidos(); atualizarDashboard();
     resetarFormularioOrcamento();
   aplicarPermissoes();
+  abrirDashboard();
 }
 function fazerLogin(){
   const u=document.getElementById('login-usuario').value.trim().toLocaleLowerCase('pt-BR'), s=document.getElementById('login-senha').value;
@@ -2736,7 +2738,7 @@ function trocarUsuario(){
   mostrarLogin();
   if(campoUsuario) campoUsuario.focus();
 }
-function abrirDashboard(){document.getElementById('painel-dashboard').style.display='block';document.querySelectorAll('.conteudo-aba').forEach(aba=>aba.classList.remove('ativa'));const voltar=document.getElementById('btn-voltar-tela');if(voltar)voltar.style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+function abrirDashboard(){document.querySelector('.app-layout')?.classList.add('menu-principal-aberto');document.getElementById('painel-dashboard').style.display='block';document.querySelectorAll('.conteudo-aba').forEach(aba=>aba.classList.remove('ativa'));const voltar=document.getElementById('btn-voltar-tela');if(voltar)voltar.style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
 function voltarParaInicio(){abrirDashboard();marcarMenu(document.querySelector('.sidebar-btn[data-tab="home"]'));}
 function abrirAbaComando(id) {
     const restritosAdmin = ['aba-relatorio-pedidos', 'aba-materiais-cortinas', 'aba-materiais-persianas', 'aba-plano-corte-persianas', 'aba-fornecedores', 'aba-profissionais', 'aba-produtos'];
@@ -2756,6 +2758,7 @@ function abrirAbaComando(id) {
   document.querySelectorAll('.conteudo-aba')
     .forEach(el => el.classList.remove('ativa'));
 
+  document.querySelector('.app-layout')?.classList.remove('menu-principal-aberto');
   aba.classList.add('ativa');
   const voltar = document.getElementById('btn-voltar-tela');
   if(voltar) voltar.style.display = 'inline-block';
@@ -2983,6 +2986,9 @@ window.abrirAbaComando = function(id) {
   const labels = {
     'aba-orcamento': 'Orçamentos',
     'aba-pedidos': 'Pedidos',
+    'aba-financeiro': 'Financeiro',
+    'aba-producao': 'Produção',
+    'aba-etiquetas': 'Etiquetas',
     'aba-relatorio-pedidos': 'Relatórios',
     'aba-materiais-cortinas': 'Materiais para cortinas',
     'aba-materiais-persianas': 'Materias para Persianas',
