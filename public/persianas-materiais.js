@@ -123,7 +123,7 @@ function salvarCampoMaterialPersiana(input) {
     const dados = JSON.parse(JSON.stringify(pedido.materiaisPersianas || {}));
     dados[chave] = { ...dados[chave], [campo]: input.type === 'checkbox' ? input.checked : input.value.trim() };
     const atualizados = pedidos.map(p => p === pedido ? { ...p, materiaisPersianas: dados } : p);
-    try { localStorage.setItem('michele_pedidos', JSON.stringify(atualizados)); }
+    try { window.micheleStorage.setItem('michele_pedidos', JSON.stringify(atualizados)); }
     catch (erro) { alert('Não foi possível salvar o acabamento. Verifique o armazenamento do navegador e tente novamente.'); return; }
     pedido.materiaisPersianas = dados;
     if (objetoOrcamentoCorrente?.idDocumento === pedido.idDocumento) objetoOrcamentoCorrente.materiaisPersianas = dados;

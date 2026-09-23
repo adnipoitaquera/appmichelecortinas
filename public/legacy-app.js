@@ -553,7 +553,7 @@ function restaurarCatalogoProdutos() {
     ['michele_produtos_motorizacao', PRECOS_MOTORIZACAO]
   ];
   categorias.forEach(([chave, lista]) => {
-    const salvo = JSON.parse(localStorage.getItem(chave) || 'null');
+    const salvo = JSON.parse(window.micheleStorage.getItem(chave) || 'null');
     if (Array.isArray(salvo)) lista.splice(0, lista.length, ...salvo);
     if (lista === PRECOS_VOAL || lista === PRECOS_FORRO) {
         lista.splice(0, lista.length, ...separarVariacoesTecidos(lista));
@@ -561,7 +561,7 @@ function restaurarCatalogoProdutos() {
   });
   // O catálogo básico funciona mesmo quando o módulo externo não está disponível.
   if (typeof completarCatalogoMateriaisPersianas === 'function') completarCatalogoMateriaisPersianas();
-  produtosPersonalizados = JSON.parse(localStorage.getItem('michele_produtos_personalizados') || '[]');
+  produtosPersonalizados = JSON.parse(window.micheleStorage.getItem('michele_produtos_personalizados') || '[]');
   if (!Array.isArray(produtosPersonalizados)) produtosPersonalizados = [];
   produtosPersonalizados.forEach(produto => {
     if (!produto?.id || !produto?.nome || !Array.isArray(produto.lista)) return;
@@ -571,13 +571,13 @@ function restaurarCatalogoProdutos() {
 }
 
 // Estado da aplicação
-let clientes = JSON.parse(localStorage.getItem('michele_clientes')) || [];
-let pedidos = JSON.parse(localStorage.getItem('michele_pedidos')) || [];
+let clientes = JSON.parse(window.micheleStorage.getItem('michele_clientes')) || [];
+let pedidos = JSON.parse(window.micheleStorage.getItem('michele_pedidos')) || [];
 let objetoOrcamentoCorrente = null;
 let contadorItensId = 0;
-let fornecedores = JSON.parse(localStorage.getItem('michele_fornecedores')) || [];
-let profissionais = JSON.parse(localStorage.getItem('michele_profissionais')) || [];
-let usuarioAtual = JSON.parse(sessionStorage.getItem('michele_usuario_atual') || 'null');
+let fornecedores = JSON.parse(window.micheleStorage.getItem('michele_fornecedores')) || [];
+let profissionais = JSON.parse(window.micheleStorage.getItem('michele_profissionais')) || [];
+let usuarioAtual = window.micheleCloud.usuario;
 let fornecedorEditando = null;
 let profissionalEditando = null;
 
@@ -760,7 +760,7 @@ function iniciarNovaCategoria() {
   document.getElementById('produto-novo-nome').focus();
 }
 function persistirCategoriaProduto(dados) {
-  localStorage.setItem(dados.chave, JSON.stringify(dados.chave === 'michele_produtos_personalizados' ? produtosPersonalizados : dados.lista));
+  window.micheleStorage.setItem(dados.chave, JSON.stringify(dados.chave === 'michele_produtos_personalizados' ? produtosPersonalizados : dados.lista));
 }
 function precoCatalogo(categoria, nome, valorPadrao = 0) {
   const item = categoriasProduto[categoria]?.lista.find(produto => produto.nome === nome);
@@ -2028,10 +2028,10 @@ function processarCalculoGeral() {
 
 function proximoNumero(tipo) {
     const chave = tipo === 'Pedido' ? 'michele_numero_pedido' : 'michele_numero_orcamento';
-    let atual = parseInt(localStorage.getItem(chave) || '0', 10);
+    let atual = parseInt(window.micheleStorage.getItem(chave) || '0', 10);
     if(!Number.isFinite(atual) || atual < 0) atual = 0;
     atual += 1;
-    localStorage.setItem(chave, String(atual));
+    window.micheleStorage.setItem(chave, String(atual));
     return String(atual).padStart(6, '0');
 }
 
@@ -2042,8 +2042,8 @@ function numeroExibicao(doc) {
 
 function garantirNumeracaoHistorico() {
     let alterou = false;
-    let maiorOrc = parseInt(localStorage.getItem('michele_numero_orcamento') || '0', 10) || 0;
-    let maiorPed = parseInt(localStorage.getItem('michele_numero_pedido') || '0', 10) || 0;
+    let maiorOrc = parseInt(window.micheleStorage.getItem('michele_numero_orcamento') || '0', 10) || 0;
+    let maiorPed = parseInt(window.micheleStorage.getItem('michele_numero_pedido') || '0', 10) || 0;
     pedidos.forEach(doc => {
         if(doc.tipo === 'Pedido') {
             if(doc.numeroPedido) maiorPed = Math.max(maiorPed, parseInt(doc.numeroPedido,10) || 0);
@@ -2058,9 +2058,9 @@ function garantirNumeracaoHistorico() {
             maiorOrc += 1; doc.numeroOrcamento = String(maiorOrc).padStart(6,'0'); alterou = true;
         }
     });
-    localStorage.setItem('michele_numero_orcamento', String(maiorOrc));
-    localStorage.setItem('michele_numero_pedido', String(maiorPed));
-    if(alterou) localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+    window.micheleStorage.setItem('michele_numero_orcamento', String(maiorOrc));
+    window.micheleStorage.setItem('michele_numero_pedido', String(maiorPed));
+    if(alterou) window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
 }
 
 function salvarComoOrcamentoOuPedido(tipoDocumento) {
@@ -2078,7 +2078,7 @@ function salvarComoOrcamentoOuPedido(tipoDocumento) {
         const docAtualizado = {...base, tipo:tipoDocumento, idDocumento:base.idDocumento || pedidos[indiceExistente].idDocumento};
         pedidos[indiceExistente] = docAtualizado;
         objetoOrcamentoCorrente = JSON.parse(JSON.stringify(docAtualizado));
-        localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+        window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
         atualizarTabelaPedidos();
         atualizarRelatorioTotalPedidos();
         alert(`${tipoDocumento} ${numeroExibicao(docAtualizado)} atualizado com sucesso!`);
@@ -2100,7 +2100,7 @@ function salvarComoOrcamentoOuPedido(tipoDocumento) {
     const transformouOrcamento = tipoDocumento === 'Pedido' && indiceExistente >= 0 && (base.tipo || 'Orçamento') !== 'Pedido';
     if(transformouOrcamento) pedidos.splice(indiceExistente, 1, doc);
     else pedidos.push(doc);
-    localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+    window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
     objetoOrcamentoCorrente = JSON.parse(JSON.stringify(doc));
     atualizarTabelaPedidos();
     alert(transformouOrcamento
@@ -2118,7 +2118,7 @@ function salvarAlteracoesHistorico() {
     const indice=pedidos.findIndex(pedido=>pedido.idDocumento===objetoOrcamentoCorrente.idDocumento);
     if(indice<0){alert('O registro original não foi encontrado no histórico.');return;}
     pedidos[indice]=JSON.parse(JSON.stringify(objetoOrcamentoCorrente));
-    localStorage.setItem('michele_pedidos',JSON.stringify(pedidos));
+    window.micheleStorage.setItem('michele_pedidos',JSON.stringify(pedidos));
     atualizarTabelaPedidos();
     alert(`${numeroExibicao(objetoOrcamentoCorrente)} atualizado com sucesso.`);
 }
@@ -2148,7 +2148,7 @@ function salvarNovoClienteNoBanco() {
     };
 
     clientes.push(novo);
-    localStorage.setItem('michele_clientes', JSON.stringify(clientes));
+    window.micheleStorage.setItem('michele_clientes', JSON.stringify(clientes));
     
     document.getElementById('c-nome').value = "";
     document.getElementById('c-cpf').value = "";
@@ -2518,7 +2518,7 @@ function gerarPedidoDoHistorico(index) {
     pedido.numeroPedido = proximoNumero('Pedido');
     pedido.numeroOrcamento = doc.numeroOrcamento || null;
     pedidos.splice(index, 1, pedido);
-    localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+    window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
     atualizarTabelaPedidos();
     alert(`Orçamento ${doc.numeroOrcamento ? 'ORC-' + doc.numeroOrcamento : ''} transformado no Pedido ${numeroExibicao(pedido)} de ${pedido.cliente?.nome || 'Cliente Avulso'}.`);
 }
@@ -2526,7 +2526,7 @@ function gerarPedidoDoHistorico(index) {
 function deletarPedido(index) {
     if(confirm("Deseja realmente remover este registro?")) {
         pedidos.splice(index, 1);
-        localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+        window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
         atualizarTabelaPedidos();
     }
 }
@@ -2538,6 +2538,7 @@ function normalizarDadosExistentes(){
   profissionais = Array.isArray(profissionais) ? profissionais : [];
 
   fornecedores = fornecedores.map(x => ({
+    ...x,
     id: x.id || novoCodigo(fornecedores,'FOR-'),
     razao: x.razao || '',
     fantasia: x.fantasia || '',
@@ -2553,6 +2554,7 @@ function normalizarDadosExistentes(){
   }));
 
   profissionais = profissionais.map(x => ({
+    ...x,
     id: x.id || novoCodigo(profissionais,'PROF-'),
     nome: x.nome || '',
     usuario: x.usuario || '',
@@ -2565,29 +2567,27 @@ function normalizarDadosExistentes(){
     observacoes: x.observacoes || ''
   }));
 
-  localStorage.setItem('michele_clientes', JSON.stringify(clientes));
-  localStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
-  localStorage.setItem('michele_fornecedores', JSON.stringify(fornecedores));
-  localStorage.setItem('michele_profissionais', JSON.stringify(profissionais));
+  window.micheleStorage.setItem('michele_clientes', JSON.stringify(clientes));
+  window.micheleStorage.setItem('michele_pedidos', JSON.stringify(pedidos));
+  window.micheleStorage.setItem('michele_fornecedores', JSON.stringify(fornecedores));
+  window.micheleStorage.setItem('michele_profissionais', JSON.stringify(profissionais));
 }
 
 function inicializarUsuarios(){
-  if(!profissionais.length){
-    profissionais=[{id:'PROF-000001',nome:'Administrador do Sistema',cargo:'Administrador',comissao:0,usuario:'admin',senha:'1234',telefone:'',email:'',status:'Ativo',observacoes:''}];
+  // Contas e permissoes vem do Supabase Auth; nenhum usuario padrao e criado.
+  const campoSenha = document.getElementById('p-senha');
+  if(campoSenha){campoSenha.value='';campoSenha.disabled=true;campoSenha.parentElement.style.display='none';}
+  const campoEmail = document.getElementById('p-email');
+  if(campoEmail && !document.getElementById('aviso-acesso-supabase')){
+    const aviso=document.createElement('p');aviso.id='aviso-acesso-supabase';
+    aviso.textContent='Este cadastro registra o profissional. Para liberar o acesso, cadastre sua conta em Authentication no Supabase e autorize seu e-mail em michele_acessos.';
+    campoEmail.parentElement.appendChild(aviso);
   }
-  if(!profissionais.some(p=>String(p.usuario||'').toLowerCase()==='elton')){
-    profissionais.push({id:novoCodigo(profissionais,'PROF-'),nome:'Elton',cargo:'Vendedor',comissao:5,usuario:'Elton',senha:'1234',telefone:'',email:'',status:'Ativo',observacoes:''});
-  }
-  localStorage.setItem('michele_profissionais',JSON.stringify(profissionais));
 }
 function mostrarLogin(){document.getElementById('login-screen').style.display='flex';document.getElementById('app-shell').style.display='none';}
 function usuarioEhAdministrador() {
-  const cadastroAtual = profissionais.find(p => p.id === usuarioAtual?.id) || profissionais.find(p => p.usuario === usuarioAtual?.usuario);
-  if(cadastroAtual) {
-    usuarioAtual = cadastroAtual;
-    sessionStorage.setItem('michele_usuario_atual', JSON.stringify(usuarioAtual));
-  }
-  return String(usuarioAtual?.cargo || '').trim().toLowerCase() === 'administrador';
+  usuarioAtual = window.micheleCloud.usuario;
+  return usuarioAtual.cargo === 'Administrador';
 }
 function iniciarAplicacao(){
   document.getElementById('login-screen').style.display='none';document.getElementById('app-shell').style.display='block';
@@ -2601,26 +2601,17 @@ function iniciarAplicacao(){
   aplicarPermissoes();
   abrirDashboard();
 }
-function fazerLogin(){
-  const u=document.getElementById('login-usuario').value.trim().toLocaleLowerCase('pt-BR'), s=document.getElementById('login-senha').value;
-  const p=profissionais.find(x=>
-    String(x.usuario || '').trim().toLocaleLowerCase('pt-BR')===u &&
-    String(x.senha || '')===s &&
-    String(x.status || '').trim().toLocaleLowerCase('pt-BR')==='ativo'
-  );
-  if(!p){document.getElementById('login-erro').textContent='Usuário ou senha inválidos.';return;}
-  usuarioAtual=p;sessionStorage.setItem('michele_usuario_atual',JSON.stringify(p));document.getElementById('login-erro').textContent='';iniciarAplicacao();
-}
+function fazerLogin(){location.reload();}
 
 // Configurações da Empresa
 const LOGO_EMPRESA_PADRAO = 'https://drive.google.com/thumbnail?id=1YCQITXdbaT8o7OP0GkgX5rtJt56OElzT&sz=w1200';
 function carregarConfiguracoes() {
-  const config = JSON.parse(localStorage.getItem('michele_config_empresa') || '{}');
+  const config = JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}');
     aplicarPaleta(config.paleta || 'padrao');
   atualizarCabecalhoEmpresa({ ...config, logo: config.logo || LOGO_EMPRESA_PADRAO });
 }
 function abrirConfiguracoes() {
-  const config = JSON.parse(localStorage.getItem('michele_config_empresa') || '{}');
+  const config = JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}');
   document.getElementById('config-nome-empresa').value = config.nomeEmpresa || 'Michele Cortinas';
   document.getElementById('config-endereco').value = config.endereco || '';
   document.getElementById('config-bairro-cidade').value = config.bairroCidade || '';
@@ -2659,9 +2650,9 @@ function removerLogoEmpresa() {
   if (preview) { preview.src = ''; preview.style.display = 'none'; }
   const arquivo = document.getElementById('config-logo');
   if (arquivo) arquivo.value = '';
-  const config = JSON.parse(localStorage.getItem('michele_config_empresa') || '{}');
+  const config = JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}');
   delete config.logo;
-  localStorage.setItem('michele_config_empresa', JSON.stringify(config));
+  window.micheleStorage.setItem('michele_config_empresa', JSON.stringify(config));
   atualizarCabecalhoEmpresa(config);
 }
 // Fechar modal ao clicar fora dele
@@ -2670,7 +2661,7 @@ document.addEventListener('click', (e) => {
   if (e.target === modal) fecharConfiguracoes();
 });
 function salvarConfiguraciones() {
-  const configAnterior = JSON.parse(localStorage.getItem('michele_config_empresa') || '{}');
+  const configAnterior = JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}');
   const logoPreview = document.getElementById('config-logo-preview');
   const config = {
     nomeEmpresa: document.getElementById('config-nome-empresa').value || 'Michele Cortinas',
@@ -2684,7 +2675,7 @@ function salvarConfiguraciones() {
         logo: logoPreview?.src || configAnterior.logo || LOGO_EMPRESA_PADRAO,
         paleta: document.getElementById('config-paleta').value
   };
-  localStorage.setItem('michele_config_empresa', JSON.stringify(config));
+  window.micheleStorage.setItem('michele_config_empresa', JSON.stringify(config));
     aplicarPaleta(config.paleta);
   atualizarCabecalhoEmpresa(config);
   fecharConfiguracoes();
@@ -2727,17 +2718,8 @@ function atualizarCabecalhoEmpresa(config) {
   }
 }
 
-function fazerLogout(){sessionStorage.removeItem('michele_usuario_atual');usuarioAtual=null;location.reload();}
-function trocarUsuario(){
-  sessionStorage.removeItem('michele_usuario_atual');
-  usuarioAtual=null;
-  const campoUsuario=document.getElementById('login-usuario');
-  const campoSenha=document.getElementById('login-senha');
-  if(campoUsuario) campoUsuario.value='';
-  if(campoSenha) campoSenha.value='';
-  mostrarLogin();
-  if(campoUsuario) campoUsuario.focus();
-}
+function fazerLogout(){return window.micheleCloud.signOut();}
+function trocarUsuario(){return window.micheleCloud.signOut();}
 function abrirDashboard(){document.querySelector('.app-layout')?.classList.add('menu-principal-aberto');document.getElementById('painel-dashboard').style.display='block';document.querySelectorAll('.conteudo-aba').forEach(aba=>aba.classList.remove('ativa'));const voltar=document.getElementById('btn-voltar-tela');if(voltar)voltar.style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
 function voltarParaInicio(){abrirDashboard();marcarMenu(document.querySelector('.sidebar-btn[data-tab="home"]'));}
 function abrirAbaComando(id) {
@@ -2878,7 +2860,7 @@ function novoCodigo(lista,prefixo){let n=lista.length+1;let c=prefixo+String(n).
 function limparFornecedor(){fornecedorEditando=null;['f-razao','f-fantasia','f-cnpj','f-contato','f-telefone','f-whatsapp','f-email','f-cep','f-endereco','f-observacoes'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-codigo').value=novoCodigo(fornecedores,'FOR-');}
 function salvarFornecedor(){
  const obj={id:fornecedorEditando||document.getElementById('f-codigo').value||novoCodigo(fornecedores,'FOR-'),razao:document.getElementById('f-razao').value,fantasia:document.getElementById('f-fantasia').value,cnpj:document.getElementById('f-cnpj').value,contato:document.getElementById('f-contato').value,telefone:document.getElementById('f-telefone').value,whatsapp:document.getElementById('f-whatsapp').value,email:document.getElementById('f-email').value,categoria:document.getElementById('f-categoria').value,cep:document.getElementById('f-cep').value,endereco:document.getElementById('f-endereco').value,observacoes:document.getElementById('f-observacoes').value};
- if(!obj.razao&&!obj.fantasia){alert('Informe a razão social ou nome fantasia.');return} const i=fornecedores.findIndex(x=>x.id===obj.id);if(i>=0)fornecedores[i]=obj;else fornecedores.push(obj);localStorage.setItem('michele_fornecedores',JSON.stringify(fornecedores));atualizarFornecedores();atualizarDashboard();limparFornecedor();alert('Fornecedor salvo.');
+ if(!obj.razao&&!obj.fantasia){alert('Informe a razão social ou nome fantasia.');return} const i=fornecedores.findIndex(x=>x.id===obj.id);if(i>=0)fornecedores[i]=obj;else fornecedores.push(obj);window.micheleStorage.setItem('michele_fornecedores',JSON.stringify(fornecedores));atualizarFornecedores();atualizarDashboard();limparFornecedor();alert('Fornecedor salvo.');
 }
 function editarFornecedor(id){const x=fornecedores.find(v=>v.id===id);if(!x)return;fornecedorEditando=id;document.getElementById('f-codigo').value=x.id;['razao','fantasia','cnpj','contato','telefone','whatsapp','email','cep','endereco','observacoes'].forEach(k=>{const el=document.getElementById('f-'+k);if(el)el.value=x[k]||''});document.getElementById('f-categoria').value=x.categoria||'Outros';window.scrollTo({top:0,behavior:'smooth'});}
 function atualizarFornecedores(){const q=(document.getElementById('busca-fornecedor')?.value||'').toLowerCase();const tb=document.getElementById('tabela-fornecedores');if(!tb)return;tb.innerHTML=fornecedores.filter(x=>Object.values(x).join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${x.id}</td><td>${x.razao||''}</td><td>${x.fantasia||''}</td><td>${x.cnpj||''}</td><td>${x.categoria||''}</td><td><button class="btn" style="padding:5px 8px" onclick="editarFornecedor('${x.id}')">Editar</button></td></tr>`).join('');}
@@ -2886,7 +2868,7 @@ function limparProfissional(){profissionalEditando=null;['p-nome','p-usuario','p
 function salvarProfissional(){
  if(usuarioAtual?.cargo!=='Administrador'){alert('Acesso restrito. Somente o Administrador pode cadastrar profissionais.');return}
  const obj={id:profissionalEditando||document.getElementById('p-codigo').value||novoCodigo(profissionais,'PROF-'),nome:document.getElementById('p-nome').value,usuario:document.getElementById('p-usuario').value,senha:document.getElementById('p-senha').value,cargo:document.getElementById('p-cargo').value,comissao:Number(document.getElementById('p-comissao').value)||0,telefone:document.getElementById('p-telefone').value,email:document.getElementById('p-email').value,status:document.getElementById('p-status').value,observacoes:document.getElementById('p-observacoes').value};
- if(!obj.nome||!obj.usuario||(!profissionalEditando&&!obj.senha)){alert('Nome, usuário e senha são obrigatórios.');return} if(profissionais.some(x=>x.usuario===obj.usuario&&x.id!==obj.id)){alert('Esse usuário já existe.');return} const i=profissionais.findIndex(x=>x.id===obj.id);if(i>=0)profissionais[i]=obj;else profissionais.push(obj);localStorage.setItem('michele_profissionais',JSON.stringify(profissionais));atualizarProfissionais();popularVendedores();atualizarDashboard();limparProfissional();alert('Profissional salvo.');
+ if(!obj.nome||!obj.usuario){alert('Nome e usuário são obrigatórios.');return} if(profissionais.some(x=>x.usuario===obj.usuario&&x.id!==obj.id)){alert('Esse usuário já existe.');return} const i=profissionais.findIndex(x=>x.id===obj.id);if(i>=0)profissionais[i]=obj;else profissionais.push(obj);window.micheleStorage.setItem('michele_profissionais',JSON.stringify(profissionais));atualizarProfissionais();popularVendedores();atualizarDashboard();limparProfissional();alert('Profissional salvo.');
 }
 function editarProfissional(id){if(usuarioAtual?.cargo!=='Administrador')return;const x=profissionais.find(v=>v.id===id);if(!x)return;profissionalEditando=id;document.getElementById('p-codigo').value=x.id;['nome','usuario','senha','telefone','email','observacoes'].forEach(k=>document.getElementById('p-'+k).value=x[k]||'');document.getElementById('p-cargo').value=x.cargo;document.getElementById('p-comissao').value=x.comissao;document.getElementById('p-status').value=x.status;}
 function atualizarProfissionais(){const tb=document.getElementById('tabela-profissionais');if(!tb)return;tb.innerHTML=profissionais.map(x=>`<tr><td>${x.id}</td><td>${x.nome}</td><td>${x.cargo}</td><td>${x.usuario}</td><td>${Number(x.comissao||0).toFixed(2)}%</td><td>${x.status}</td><td><button class="btn" style="padding:5px 8px" onclick="editarProfissional('${x.id}')">Editar</button></td></tr>`).join('');}
@@ -3033,8 +3015,11 @@ function exportarBackupSistema(){
     michele_produtos_acessorios: PRECOS_ACESSORIOS,
     michele_produtos_motorizacao: PRECOS_MOTORIZACAO,
     michele_produtos_personalizados: produtosPersonalizados,
-    michele_numero_orcamento: localStorage.getItem('michele_numero_orcamento') || '0',
-    michele_numero_pedido: localStorage.getItem('michele_numero_pedido') || '0'
+    michele_financeiro: JSON.parse(window.micheleStorage.getItem('michele_financeiro') || '[]'),
+    michele_producao: JSON.parse(window.micheleStorage.getItem('michele_producao') || '{}'),
+    michele_config_empresa: JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}'),
+    michele_numero_orcamento: window.micheleStorage.getItem('michele_numero_orcamento') || '0',
+    michele_numero_pedido: window.micheleStorage.getItem('michele_numero_pedido') || '0'
   };
   const blob = new Blob([JSON.stringify(dados, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -3047,41 +3032,10 @@ function exportarBackupSistema(){
 }
 
 function importarBackupSistema(event){
-  const file = event.target.files?.[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(){
-    try{
-      const dados = JSON.parse(reader.result);
-      if(!dados || typeof dados !== 'object') throw new Error('Formato inválido.');
-
-      if(!confirm('Importar este backup irá substituir os dados atuais deste navegador. Deseja continuar?')) return;
-
-      if(Array.isArray(dados.michele_clientes)) localStorage.setItem('michele_clientes', JSON.stringify(dados.michele_clientes));
-      if(Array.isArray(dados.michele_pedidos)) localStorage.setItem('michele_pedidos', JSON.stringify(dados.michele_pedidos));
-      if(Array.isArray(dados.michele_fornecedores)) localStorage.setItem('michele_fornecedores', JSON.stringify(dados.michele_fornecedores));
-      if(Array.isArray(dados.michele_profissionais)) localStorage.setItem('michele_profissionais', JSON.stringify(dados.michele_profissionais));
-      if(Array.isArray(dados.michele_produtos_voal)) localStorage.setItem('michele_produtos_voal', JSON.stringify(dados.michele_produtos_voal));
-      if(Array.isArray(dados.michele_produtos_forro)) localStorage.setItem('michele_produtos_forro', JSON.stringify(dados.michele_produtos_forro));
-      if(Array.isArray(dados.michele_produtos_persiana)) localStorage.setItem('michele_produtos_persiana', JSON.stringify(dados.michele_produtos_persiana));
-      if(Array.isArray(dados.michele_produtos_acessorios)) localStorage.setItem('michele_produtos_acessorios', JSON.stringify(dados.michele_produtos_acessorios));
-      if(Array.isArray(dados.michele_produtos_motorizacao)) localStorage.setItem('michele_produtos_motorizacao', JSON.stringify(dados.michele_produtos_motorizacao));
-      if(Array.isArray(dados.michele_produtos_personalizados)) localStorage.setItem('michele_produtos_personalizados', JSON.stringify(dados.michele_produtos_personalizados));
-      if(dados.michele_numero_orcamento != null) localStorage.setItem('michele_numero_orcamento', String(dados.michele_numero_orcamento));
-      if(dados.michele_numero_pedido != null) localStorage.setItem('michele_numero_pedido', String(dados.michele_numero_pedido));
-
-      alert('Backup importado. O sistema será recarregado.');
-      location.reload();
-    }catch(e){
-      alert('Não foi possível importar o backup: ' + e.message);
-    }finally{
-      event.target.value = '';
-    }
-  };
-  reader.readAsText(file);
+  const arquivo = event.target.files?.[0];
+  if(arquivo) window.micheleCloud.importarBackup(arquivo);
+  event.target.value = '';
 }
-
-
 
 /* ================================================================
    IMPRESSÃO PROFISSIONAL
@@ -3113,7 +3067,7 @@ function prepararPropostaImpressao() {
         : (objetoOrcamentoCorrente?.numeroOrcamento || 'A DEFINIR');
     const data = objetoOrcamentoCorrente?.data || new Date().toLocaleDateString('pt-BR');
     const valorTotal = Number(objetoOrcamentoCorrente?.valorTotal || 0);
-    const configEmpresa = JSON.parse(localStorage.getItem('michele_config_empresa') || '{}');
+    const configEmpresa = JSON.parse(window.micheleStorage.getItem('michele_config_empresa') || '{}');
     const cards = Array.from(document.querySelectorAll('.item-carrinho-card'));
     const dataBase = (() => {
         const partes = String(data).split('/').map(Number);
@@ -3204,8 +3158,8 @@ const escOperacao = valor => String(valor ?? '').replace(/[&<>"']/g, c => ({'&':
 const moedaOperacao = valor => Number(valor || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 function pedidosOperacionais(){ return pedidos.filter(doc => doc.tipo === 'Pedido'); }
 function itensOperacionais(){ return pedidosOperacionais().flatMap(doc => (doc.itens || []).map((item,indice) => ({doc,item,indice,chave:`${doc.idDocumento}-${indice}`}))); }
-function pagamentosOperacionais(){ return JSON.parse(localStorage.getItem('michele_financeiro') || '[]'); }
-function salvarPagamentosOperacionais(lista){ localStorage.setItem('michele_financeiro',JSON.stringify(lista)); }
+function pagamentosOperacionais(){ return JSON.parse(window.micheleStorage.getItem('michele_financeiro') || '[]'); }
+function salvarPagamentosOperacionais(lista){ window.micheleStorage.setItem('michele_financeiro',JSON.stringify(lista)); }
 function hojeOperacao(){ return new Date().toISOString().slice(0,10); }
 function garantirPagamentoPadrao(){
   const lista=pagamentosOperacionais(); let mudou=false;
@@ -3221,11 +3175,11 @@ function atualizarFinanceiro(){
 }
 function alternarPagamentoFinanceiro(id){const lista=pagamentosOperacionais();const p=lista.find(x=>x.id===id);if(p){p.status=p.status==='Recebido'?'Pendente':'Recebido';salvarPagamentosOperacionais(lista);atualizarFinanceiro();}}
 function adicionarParcelaFinanceira(){ const docs=pedidosOperacionais(); if(!docs.length){alert('Crie ou transforme um orçamento em pedido antes de registrar uma parcela.');return;} const doc=docs[0], valor=prompt('Valor da parcela (R$):',''); if(valor===null)return; const n=Number(String(valor).replace(',','.')); if(!Number.isFinite(n)||n<=0){alert('Informe um valor válido.');return;} const lista=pagamentosOperacionais();lista.push({id:`FIN-${Date.now()}`,documentoId:doc.idDocumento,numero:numeroExibicao(doc),cliente:doc.cliente?.nome||'Cliente',descricao:'Parcela adicional',vencimento:doc.dataEntrega||hojeOperacao(),conta:'Caixa',valor:n,status:'Pendente'});salvarPagamentosOperacionais(lista);atualizarFinanceiro(); }
-function atualizarProducao(){ const corpo=document.getElementById('prod-corpo');if(!corpo)return;const termo=(document.getElementById('prod-busca')?.value||'').toLowerCase(),filtro=document.getElementById('prod-status')?.value||'';const estado=JSON.parse(localStorage.getItem('michele_producao')||'{}');const itens=itensOperacionais().map(x=>({...x,status:estado[x.chave]||'Na fila'})).filter(x=>(!filtro||x.status===filtro)&&`${numeroExibicao(x.doc)} ${x.doc.cliente?.nome} ${x.item.ambiente} ${x.item.descPersiana||x.item.modelo||x.item.textoVoal||''}`.toLowerCase().includes(termo));
+function atualizarProducao(){ const corpo=document.getElementById('prod-corpo');if(!corpo)return;const termo=(document.getElementById('prod-busca')?.value||'').toLowerCase(),filtro=document.getElementById('prod-status')?.value||'';const estado=JSON.parse(window.micheleStorage.getItem('michele_producao')||'{}');const itens=itensOperacionais().map(x=>({...x,status:estado[x.chave]||'Na fila'})).filter(x=>(!filtro||x.status===filtro)&&`${numeroExibicao(x.doc)} ${x.doc.cliente?.nome} ${x.item.ambiente} ${x.item.descPersiana||x.item.modelo||x.item.textoVoal||''}`.toLowerCase().includes(termo));
   corpo.innerHTML=itens.length?itens.map(x=>{const produto=x.item.descPersiana||x.item.modelo||x.item.textoVoal||'Cortina sob medida',classe=x.status==='Pronto'?'status-pronto':x.status==='Em produção'?'status-producao':'status-novo';return `<tr><td>${numeroExibicao(x.doc)}</td><td><strong>${escOperacao(x.doc.cliente?.nome||'Cliente')}</strong><br><small>${escOperacao(x.item.ambiente||'Ambiente')}</small></td><td>${escOperacao(produto)}</td><td>${Number(x.item.largura||0).toFixed(2)} × ${Number(x.item.altura||0).toFixed(2)} m<br><small>Qtd. ${x.item.quantidade||1}</small></td><td>${formatarDataMaterial(x.doc.dataEntrega)||'-'}</td><td><span class="status-pedido ${classe}">${x.status}</span></td><td><select onchange="alterarStatusProducao('${x.chave}',this.value)"><option ${x.status==='Na fila'?'selected':''}>Na fila</option><option ${x.status==='Em produção'?'selected':''}>Em produção</option><option ${x.status==='Pronto'?'selected':''}>Pronto</option></select></td></tr>`}).join(''):'<tr><td colspan="7">Nenhum item de produção encontrado.</td></tr>';
   document.getElementById('prod-fila').textContent=itens.filter(x=>x.status==='Na fila').length;document.getElementById('prod-andamento').textContent=itens.filter(x=>x.status==='Em produção').length;document.getElementById('prod-prontos').textContent=itens.filter(x=>x.status==='Pronto').length;
 }
-function alterarStatusProducao(chave,status){const estado=JSON.parse(localStorage.getItem('michele_producao')||'{}');estado[chave]=status;localStorage.setItem('michele_producao',JSON.stringify(estado));atualizarProducao();atualizarEtiquetas();}
+function alterarStatusProducao(chave,status){const estado=JSON.parse(window.micheleStorage.getItem('michele_producao')||'{}');estado[chave]=status;window.micheleStorage.setItem('michele_producao',JSON.stringify(estado));atualizarProducao();atualizarEtiquetas();}
 function atualizarEtiquetas(){const alvo=document.getElementById('etiquetas-corpo'),sel=document.getElementById('etiq-pedido');if(!alvo||!sel)return;const anterior=sel.value;sel.innerHTML='<option value="">Todos os pedidos</option>'+pedidosOperacionais().map(d=>`<option value="${escOperacao(d.idDocumento)}">${escOperacao(numeroExibicao(d))} — ${escOperacao(d.cliente?.nome||'Cliente')}</option>`).join('');sel.value=anterior;const termo=(document.getElementById('etiq-busca')?.value||'').toLowerCase();const lista=itensOperacionais().filter(x=>(!sel.value||x.doc.idDocumento===sel.value)&&`${numeroExibicao(x.doc)} ${x.doc.cliente?.nome}`.toLowerCase().includes(termo));alvo.innerHTML=lista.length?lista.map(x=>`<article class="etiqueta"><div class="etiqueta-topo"><span>MICHELE CORTINAS</span><small>${numeroExibicao(x.doc)}</small></div><small>CLIENTE</small><h3>${escOperacao(x.doc.cliente?.nome||'Cliente')}</h3><div class="etiqueta-dados"><span><small>AMBIENTE</small><br>${escOperacao(x.item.ambiente||'-')}</span><span><small>MEDIDAS</small><br>${Number(x.item.largura||0).toFixed(2)} × ${Number(x.item.altura||0).toFixed(2)} m</span><span><small>PRODUTO</small><br>${escOperacao(x.item.descPersiana||x.item.modelo||x.item.textoVoal||'Cortina')}</span><span><small>QTD.</small><br>${x.item.quantidade||1}</span></div><div class="codigo-barras"></div></article>`).join(''):'<div class="vazio-modulo">Nenhuma etiqueta para os filtros selecionados.</div>';}
 function imprimirEtiquetas(){document.body.classList.add('imprimindo-etiquetas');imprimirComRetorno();}
 function exportarProducaoCSV(){const linhas=itensOperacionais().map(x=>[numeroExibicao(x.doc),x.doc.cliente?.nome||'',x.item.ambiente||'',x.item.descPersiana||x.item.modelo||x.item.textoVoal||'',`${x.item.largura||0} x ${x.item.altura||0}`,x.doc.dataEntrega||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';'));const blob=new Blob([[['Pedido','Cliente','Ambiente','Produto','Medidas','Entrega'].join(';'),...linhas].join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='producao-Michele Cortinas.csv';a.click();URL.revokeObjectURL(a.href);}
