@@ -2576,11 +2576,16 @@ function normalizarDadosExistentes(){
 function inicializarUsuarios(){
   // Contas e permissoes vem do Supabase Auth; nenhum usuario padrao e criado.
   const campoSenha = document.getElementById('p-senha');
-  if(campoSenha){campoSenha.value='';campoSenha.disabled=true;campoSenha.parentElement.style.display='none';}
+  if(campoSenha){
+    campoSenha.value='';campoSenha.disabled=false;campoSenha.autocomplete='new-password';
+    campoSenha.minLength=8;campoSenha.maxLength=128;
+    campoSenha.placeholder='Preencha para criar uma conta nova';
+    campoSenha.parentElement.querySelector('label').textContent='Senha do novo acesso (opcional)';
+  }
   const campoEmail = document.getElementById('p-email');
   if(campoEmail && !document.getElementById('aviso-acesso-supabase')){
     const aviso=document.createElement('p');aviso.id='aviso-acesso-supabase';
-    aviso.textContent='Este cadastro registra o profissional. Para liberar o acesso, cadastre sua conta em Authentication no Supabase e autorize seu e-mail em michele_acessos.';
+    aviso.textContent='Para criar um novo acesso, informe e-mail e senha de 8 a 128 caracteres e salve. O login será pelo e-mail. Sem senha, salva apenas o profissional. Este campo não altera senhas nem permissões de contas existentes.';
     campoEmail.parentElement.appendChild(aviso);
   }
 }
@@ -2865,12 +2870,38 @@ function salvarFornecedor(){
 function editarFornecedor(id){const x=fornecedores.find(v=>v.id===id);if(!x)return;fornecedorEditando=id;document.getElementById('f-codigo').value=x.id;['razao','fantasia','cnpj','contato','telefone','whatsapp','email','cep','endereco','observacoes'].forEach(k=>{const el=document.getElementById('f-'+k);if(el)el.value=x[k]||''});document.getElementById('f-categoria').value=x.categoria||'Outros';window.scrollTo({top:0,behavior:'smooth'});}
 function atualizarFornecedores(){const q=(document.getElementById('busca-fornecedor')?.value||'').toLowerCase();const tb=document.getElementById('tabela-fornecedores');if(!tb)return;tb.innerHTML=fornecedores.filter(x=>Object.values(x).join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${x.id}</td><td>${x.razao||''}</td><td>${x.fantasia||''}</td><td>${x.cnpj||''}</td><td>${x.categoria||''}</td><td><button class="btn" style="padding:5px 8px" onclick="editarFornecedor('${x.id}')">Editar</button></td></tr>`).join('');}
 function limparProfissional(){profissionalEditando=null;['p-nome','p-usuario','p-senha','p-telefone','p-email','p-observacoes'].forEach(id=>document.getElementById(id).value='');document.getElementById('p-codigo').value=novoCodigo(profissionais,'PROF-');document.getElementById('p-comissao').value=5;document.getElementById('p-cargo').value='Vendedor';document.getElementById('p-status').value='Ativo';}
-function salvarProfissional(){
+let salvandoProfissional = false;
+async function salvarProfissional(){
  if(usuarioAtual?.cargo!=='Administrador'){alert('Acesso restrito. Somente o Administrador pode cadastrar profissionais.');return}
- const obj={id:profissionalEditando||document.getElementById('p-codigo').value||novoCodigo(profissionais,'PROF-'),nome:document.getElementById('p-nome').value,usuario:document.getElementById('p-usuario').value,senha:document.getElementById('p-senha').value,cargo:document.getElementById('p-cargo').value,comissao:Number(document.getElementById('p-comissao').value)||0,telefone:document.getElementById('p-telefone').value,email:document.getElementById('p-email').value,status:document.getElementById('p-status').value,observacoes:document.getElementById('p-observacoes').value};
- if(!obj.nome||!obj.usuario){alert('Nome e usuário são obrigatórios.');return} if(profissionais.some(x=>x.usuario===obj.usuario&&x.id!==obj.id)){alert('Esse usuário já existe.');return} const i=profissionais.findIndex(x=>x.id===obj.id);if(i>=0)profissionais[i]=obj;else profissionais.push(obj);window.micheleStorage.setItem('michele_profissionais',JSON.stringify(profissionais));atualizarProfissionais();popularVendedores();atualizarDashboard();limparProfissional();alert('Profissional salvo.');
+ if(salvandoProfissional)return;
+ const senha=document.getElementById('p-senha').value;
+ const obj={id:profissionalEditando||document.getElementById('p-codigo').value||novoCodigo(profissionais,'PROF-'),nome:document.getElementById('p-nome').value.trim(),usuario:document.getElementById('p-usuario').value.trim(),cargo:document.getElementById('p-cargo').value,comissao:Number(document.getElementById('p-comissao').value)||0,telefone:document.getElementById('p-telefone').value,email:document.getElementById('p-email').value.trim().toLowerCase(),status:document.getElementById('p-status').value,observacoes:document.getElementById('p-observacoes').value};
+ if(!obj.usuario)obj.usuario=obj.email;
+ if(!obj.nome||!obj.usuario){alert('Informe o nome e o e-mail ou usuário do profissional.');return}
+ if(profissionais.some(x=>x.usuario===obj.usuario&&x.id!==obj.id)){alert('Esse usuário já existe.');return}
+ if(senha && (senha.length<8 || senha.length>128 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(obj.email) || obj.status!=='Ativo' || !['Administrador','Gerente','Vendedor'].includes(obj.cargo))){alert('Para criar acesso, informe e-mail válido, senha de 8 a 128 caracteres, status Ativo e cargo Administrador, Gerente ou Vendedor.');return}
+ const botao=document.querySelector('[onclick="salvarProfissional()"]');
+ salvandoProfissional=true;
+ if(botao){botao.disabled=true;botao.textContent=senha?'Salvando e criando acesso…':'Salvando…';}
+ try {
+   const novos=profissionais.map(x=>{const {senha: senhaAntiga,...registro}=x;return registro;});
+   const i=novos.findIndex(x=>x.id===obj.id);if(i>=0)novos[i]=obj;else novos.push(obj);
+   window.micheleStorage.setItem('michele_profissionais',JSON.stringify(novos));
+   profissionais=novos;profissionalEditando=obj.id;
+   atualizarProfissionais();popularVendedores();atualizarDashboard();
+   if(senha){
+     await window.micheleCloud.criarAcesso(obj.id,senha);
+     alert('Profissional salvo e acesso criado. Entre com o e-mail '+obj.email+' e a senha informada.');
+   } else alert('Profissional salvo. Nenhuma conta de acesso foi criada ou alterada.');
+   limparProfissional();
+ } catch(error){alert(error.message||'Não foi possível concluir o cadastro.');}
+ finally {
+   document.getElementById('p-senha').value='';
+   salvandoProfissional=false;
+   if(botao){botao.disabled=false;botao.textContent='Salvar profissional';}
+ }
 }
-function editarProfissional(id){if(usuarioAtual?.cargo!=='Administrador')return;const x=profissionais.find(v=>v.id===id);if(!x)return;profissionalEditando=id;document.getElementById('p-codigo').value=x.id;['nome','usuario','senha','telefone','email','observacoes'].forEach(k=>document.getElementById('p-'+k).value=x[k]||'');document.getElementById('p-cargo').value=x.cargo;document.getElementById('p-comissao').value=x.comissao;document.getElementById('p-status').value=x.status;}
+function editarProfissional(id){if(usuarioAtual?.cargo!=='Administrador'||salvandoProfissional)return;const x=profissionais.find(v=>v.id===id);if(!x)return;profissionalEditando=id;document.getElementById('p-codigo').value=x.id;document.getElementById('p-senha').value='';['nome','usuario','telefone','email','observacoes'].forEach(k=>document.getElementById('p-'+k).value=x[k]||'');document.getElementById('p-cargo').value=x.cargo;document.getElementById('p-comissao').value=x.comissao;document.getElementById('p-status').value=x.status;}
 function atualizarProfissionais(){const tb=document.getElementById('tabela-profissionais');if(!tb)return;tb.innerHTML=profissionais.map(x=>`<tr><td>${x.id}</td><td>${x.nome}</td><td>${x.cargo}</td><td>${x.usuario}</td><td>${Number(x.comissao||0).toFixed(2)}%</td><td>${x.status}</td><td><button class="btn" style="padding:5px 8px" onclick="editarProfissional('${x.id}')">Editar</button></td></tr>`).join('');}
 function popularVendedores(){const s=document.getElementById('orc-vendedor-select');if(!s)return;const ativos=profissionais.filter(x=>x.status==='Ativo'&&(x.cargo==='Vendedor'||x.cargo==='Gerente'||x.cargo==='Administrador'));s.innerHTML='<option value="">Selecionar vendedor</option>'+ativos.map(x=>`<option value="${x.id}">${x.nome}</option>`).join('');if(usuarioAtual&&usuarioAtual.cargo==='Vendedor')s.value=usuarioAtual.id;}
 function buscarGlobal(){const q=(document.getElementById('busca-global')?.value||'').trim().toLowerCase(), box=document.getElementById('resultado-global');if(!q){box.style.display='none';box.innerHTML='';return;}const cs=clientes.filter(x=>Object.values(x).join(' ').toLowerCase().includes(q)).slice(0,5);const fs=fornecedores.filter(x=>Object.values(x).join(' ').toLowerCase().includes(q)).slice(0,5);const ds=pedidos.filter(x=>Object.values(x).join(' ').toLowerCase().includes(q)).slice(0,8);box.style.display='block';box.innerHTML='<div class="secao-titulo">Resultados</div>'+((cs.length?'<h4>Clientes</h4>'+cs.map(x=>`<div class="dash-card" onclick="abrirAbaComando(\'aba-clientes\')"><strong>${x.nome}</strong> — ${x.id} — ${x.telefone||''}</div>`).join(''):'')+(fs.length?'<h4>Fornecedores</h4>'+fs.map(x=>`<div class="dash-card"><strong>${x.fantasia||x.razao}</strong> — ${x.id}</div>`).join(''):'')+(ds.length?'<h4>Orçamentos / Pedidos</h4>'+ds.map(x=>`<div class="dash-card"><strong>${x.numeroOrcamento||x.numeroPedido||x.numero||''}</strong> — ${x.clienteNome||''} — ${(Number(x.total)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>`).join(''):'')||'<p>Nenhum resultado encontrado.</p>');}

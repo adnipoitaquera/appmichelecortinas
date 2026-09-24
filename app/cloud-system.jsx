@@ -28,7 +28,7 @@ export default function CloudSystem({ html }) {
   const [phase, setPhase] = useState('boot');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ state: 'loading', message: 'Carregando…' });
   const [profile, setProfile] = useState(null);
@@ -64,6 +64,18 @@ export default function CloudSystem({ html }) {
         email: user.email, usuario: user.email, status: 'Ativo' },
       signOut,
       importarBackup: chooseBackup,
+      criarAcesso: async (id, password) => {
+        if (!await store.current.flush()) throw new Error('Confirme o envio do profissional ao Supabase antes de criar o acesso.');
+        const { data, error } = await client.current.auth.getSession();
+        if (error || !data.session) throw new Error('Entre novamente como administrador.');
+        const response = await fetch('/api/usuarios', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+          body: JSON.stringify({ id, password }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Não foi possível criar o acesso.');
+        return result;
+      },
     };
     setPhase('ready');
   }
@@ -129,8 +141,12 @@ export default function CloudSystem({ html }) {
   async function login(event) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const { error } = await client.current.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) throw new Error('Não foi possível entrar. Confira o e-mail, a senha e a confirmação da conta no Supabase.');
+      const identifier = loginId.trim().toLowerCase();
+      // Alias for the administrator account seeded in supabase/001_michele.sql.
+      // Authentication and authorization still run through Supabase.
+      const email = identifier === 'admin' ? 'decoracaoeestilo@hotmail.com' : identifier;
+      const { error } = await client.current.auth.signInWithPassword({ email, password });
+      if (error) throw new Error('Não foi possível entrar. Confira o login e a senha. A conta precisa estar cadastrada e confirmada no Supabase.');
       setPassword(''); await loadAccount();
     } catch (e) { setError(message(e)); if (!active.current) setPhase('login'); }
     finally { setBusy(false); }
@@ -222,8 +238,8 @@ export default function CloudSystem({ html }) {
 
   if (phase === 'config') return <Panel><h1>Conectar ao Supabase</h1><p>Configure a URL e a chave pública do projeto nas variáveis de ambiente e publique novamente o sistema.</p></Panel>;
   if (phase === 'boot' || phase === 'loading') return <Panel><p role="status">Conectando ao Supabase…</p></Panel>;
-  if (phase === 'login') return <Panel><h1>Acesse sua conta</h1><p>Entre com o e-mail e a senha cadastrados para este sistema.</p>
-    <form onSubmit={login}><label>E-mail<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label>
+  if (phase === 'login') return <Panel><h1>Acesse sua conta</h1><p>Use admin para a conta do administrador ou informe seu e-mail.</p>
+    <form onSubmit={login}><label>Login<input type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="admin ou seu e-mail" required value={loginId} onChange={e => setLoginId(e.target.value)} /></label>
       <label>Senha<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>
       {error && <p role="alert" className="cloud-error">{error}</p>}<button disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button></form></Panel>;
   if (phase === 'recovery') return <Panel><h1>Recuperar alterações pendentes</h1><p role="alert">{error}</p><p>A cópia será mantida neste computador e baixada para revisão. Depois, você poderá importá-la pelo botão Importar backup.</p><button onClick={archiveAndReload}>Baixar cópia e carregar o Supabase</button></Panel>;

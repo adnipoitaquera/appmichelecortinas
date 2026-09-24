@@ -35,7 +35,7 @@ test('legacy forms initialize with cloud data and save a customer through the Su
     assert.equal(window.document.getElementById('login-screen').style.display, 'none');
     assert.equal(window.document.getElementById('app-shell').style.display, 'block');
     assert.equal(window.document.getElementById('dash-clientes').textContent, '1');
-    assert.equal(window.document.getElementById('p-senha').disabled, true);
+    assert.equal(window.document.getElementById('p-senha').disabled, false);
     window.document.getElementById('c-codigo').value = 'CLI-2';
     window.document.getElementById('c-nome').value = 'Novo cliente';
     window.salvarNovoClienteNoBanco();
@@ -46,5 +46,26 @@ test('legacy forms initialize with cloud data and save a customer through the Su
     assert.equal(saved.versao, 1);
     assert.equal(window.localStorage.getItem('michele_clientes'), original);
     assert.equal(states.at(-1).state, 'saved');
+    let accessRequest;
+    window.micheleCloud.criarAcesso = async (id, password) => { accessRequest = { id, password }; };
+    window.document.getElementById('p-nome').value = 'Nova vendedora';
+    window.document.getElementById('p-email').value = 'nova@example.test';
+    window.document.getElementById('p-senha').value = 'Teste-seguro-123';
+    window.document.getElementById('p-cargo').value = 'Vendedor';
+    window.document.getElementById('p-status').value = 'Ativo';
+    await window.salvarProfissional();
+    assert.equal(accessRequest.password, 'Teste-seguro-123');
+    assert.equal(window.document.getElementById('p-senha').value, '');
+    assert.ok(!JSON.stringify(store.snapshot()).includes('Teste-seguro-123'));
+    assert.ok(!JSON.stringify({ ...window.localStorage }).includes('Teste-seguro-123'));
+    await store.flush();
+    assert.ok(!JSON.stringify(writes).includes('Teste-seguro-123'));
+    window.editarProfissional(accessRequest.id);
+    window.document.getElementById('p-senha').value = 'Outra-senha-123';
+    window.micheleCloud.criarAcesso = async () => { throw new Error('Configuração pendente'); };
+    await window.salvarProfissional();
+    assert.equal(window.document.getElementById('p-senha').value, '');
+    assert.equal(window.document.getElementById('p-email').value, 'nova@example.test');
+    assert.ok(!JSON.stringify(store.snapshot()).includes('Outra-senha-123'));
   } finally { store?.dispose(); window.close(); }
 });

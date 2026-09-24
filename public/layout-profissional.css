@@ -395,3 +395,111 @@ td[style*="background:#292929"] { background: #eef1e9 !important; color: #55633d
   th { font-weight: 750; }
   td, .badge, .v6-breadcrumb { font-weight: 600; }
 }
+
+/* Página inicial com atalhos visuais, inspirada na referência de painel. */
+@media screen {
+  .app-layout.menu-principal-aberto { background: #fff; }
+  .menu-principal-aberto .v6-topbar { background: #fff; border: 0; border-bottom: 1px solid #e2e8f0; }
+  #painel-dashboard { max-width: 1000px; margin: 0 auto; padding: 12px 0 28px; }
+  #painel-dashboard .inicio-cabecalho { background: #fff; border: 0; border-bottom: 1px solid #e2e8f0; border-radius: 0; padding: 12px 0 20px; margin-bottom: 20px; }
+  #painel-dashboard .inicio-eyebrow { color: #1765cf !important; }
+  #painel-dashboard .inicio-cabecalho h1 { font-size: 26px; color: #253449; letter-spacing: -.4px; }
+  #painel-dashboard .menu-grupo-titulo { color: #475569; font-size: 14px; margin-bottom: 12px; }
+  #painel-dashboard .menu-principal-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-bottom: 24px; }
+  #painel-dashboard .menu-principal-botao {
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    min-height: 150px; padding: 18px 12px; gap: 12px; text-align: center;
+    border: 1px solid transparent; border-radius: 8px; background: #fff; box-shadow: none;
+    color: #253449; transition: background-color .15s, border-color .15s;
+  }
+  #painel-dashboard .menu-principal-botao svg { width: 52px; height: 52px; padding: 0; flex-shrink: 0; border-radius: 0; background: transparent; color: #0967da; stroke-width: 1.9; }
+  #painel-dashboard .menu-principal-botao > span { padding: 0; }
+  #painel-dashboard .menu-principal-botao strong { font-size: 15px; line-height: 1.35; font-weight: 700; }
+  #painel-dashboard .menu-principal-botao small { margin-top: 5px; font-size: 12px; font-weight: 400; color: #526175; }
+  #painel-dashboard .menu-principal-botao::after { display: none; }
+  #painel-dashboard .menu-principal-botao:hover { background: #f0f6ff; border-color: #bfd7f6; box-shadow: none; }
+  #painel-dashboard .menu-principal-botao:active { background: #e2eeff; transform: none; }
+  #painel-dashboard .menu-principal-botao:focus-visible { outline: 3px solid #0967da; outline-offset: 2px; }
+  #painel-dashboard .menu-administracao { border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; padding: 0; margin-bottom: 0; background: #fff; }
+  #painel-dashboard .menu-administracao > summary { min-height: 44px; padding: 14px 0; font-size: 14px; color: #475569; }
+  #painel-dashboard .menu-administracao > summary span { display: inline; margin-left: 8px; font-size: 12px; color: #526175; }
+}
+@media screen and (max-width: 600px) {
+  #painel-dashboard { padding-top: 0; }
+  #painel-dashboard .inicio-cabecalho h1 { font-size: 23px; }
+  #painel-dashboard .menu-principal-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #painel-dashboard .menu-principal-botao { min-height: 140px; padding: 12px 6px; }
+  #painel-dashboard .menu-principal-botao svg { width: 44px; height: 44px; }
+  #painel-dashboard .menu-principal-botao strong { font-size: 14px; }
+  #painel-dashboard .menu-administracao > summary span { display: block; margin: 5px 0 0; }
+}
+
+/* Formato de cadastro ERP, inspirado na referência enviada pelo usuário.
+   A densidade de desktop fica restrita à tela; celular e impressão têm regras próprias. */
+@media screen and (min-width: 801px) {
+  .app-layout, .editor-ambiente {
+    --bg-card: #fffff3;
+    --bg-input: #fff;
+    --borda: #aab3bc;
+    --texto-claro: #202d3d;
+    --texto-escuro: #475569;
+  }
+  .app-layout { background: #e8ebee; font-size: 13px; }
+  .app-main { padding: 0 16px 24px; min-width: 0; }
+  .app-main .container { padding: 0; }
+  .v6-topbar { min-height: 48px; padding: 7px 10px; margin-bottom: 12px; background: linear-gradient(#e5eff7, #cbdce9); border: 1px solid #a4b7c8; gap: 8px; }
+  .sidebar { width: 204px; flex-basis: 204px; padding: 12px 8px; background: #eff1f3; }
+  .sidebar-brand { padding: 4px 8px 12px; margin-bottom: 6px; }
+  .sidebar-brand:before { display: none; }
+  .sidebar-brand strong { font-size: 13px; letter-spacing: .3px; color: #173e70; }
+  .sidebar-section { padding: 8px; letter-spacing: .5px; }
+  .sidebar-btn { min-height: 32px; padding: 6px 8px; border-radius: 2px; gap: 8px; }
+  .sidebar-btn.ativo { padding-left: 8px; background: #dce8f4; color: #173e70; border-color: #99b1ca; box-shadow: inset 3px 0 #315f8b; }
+  .conteudo-aba { padding: 12px; border-radius: 2px; box-shadow: none; }
+  .secao-titulo { margin: 16px 0 10px; padding: 5px 8px; background: #edf0e7; border: 1px solid #bdc5bc; color: #173e70; font-size: 13px; letter-spacing: 0; }
+  .app-layout label, .editor-ambiente label { display: block; margin-bottom: 3px; color: #173e70; font-size: 12px; }
+  .app-layout input, .app-layout select, .app-layout textarea,
+  .editor-ambiente input, .editor-ambiente select, .editor-ambiente textarea {
+    min-height: 30px; padding: 5px 7px; border-radius: 1px; border-color: #9caab8;
+    background: #fff; color: #202d3d; font-size: 13px; font-weight: 500;
+  }
+  .app-layout input[type=checkbox], .app-layout input[type=radio],
+  .editor-ambiente input[type=checkbox], .editor-ambiente input[type=radio] { min-height: 18px; width: 18px; height: 18px; }
+  .app-layout .grid-forms, .editor-ambiente .grid-forms { gap: 8px; margin-bottom: 10px; }
+  .app-layout .btn, .editor-ambiente .btn { min-height: 30px; padding: 5px 10px; font-size: 12px; border-radius: 2px; }
+  .app-layout .btn-ouro, .editor-ambiente .btn-ouro { background: #315f8b; border-color: #244d74; color: #fff; }
+  .app-layout .btn-ouro:hover, .editor-ambiente .btn-ouro:hover { background: #244d74; }
+  .app-layout th, .editor-ambiente th { background: #e7edf2; color: #173e70; padding: 7px 8px; border-bottom: 1px solid #aab3bc; }
+  .app-layout td, .editor-ambiente td { padding: 6px 8px; font-size: 12px; font-weight: 500; }
+  .inicio-cabecalho { padding: 14px; margin-bottom: 14px; border-radius: 2px; background: #fffff3; border-color: #aab3bc; }
+  .inicio-cabecalho h1 { font-size: 24px; margin-bottom: 6px; letter-spacing: 0; }
+  .inicio-eyebrow { margin-bottom: 5px !important; color: #173e70 !important; }
+  .menu-grupo-titulo { font-size: 14px; margin-bottom: 8px; color: #173e70; }
+  .menu-principal-grade { gap: 8px; padding-bottom: 16px; }
+  .menu-principal-botao { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 84px; padding: 12px; gap: 10px; border-radius: 2px; box-shadow: none; }
+  .menu-principal-botao:first-child { border-color: #99b1ca; background: #f2f6fa; }
+  .menu-principal-botao svg { width: 32px; height: 32px; padding: 5px; flex-shrink: 0; border-radius: 2px; color: #315f8b; background: #e7edf2; }
+  .menu-principal-botao strong { font-size: 14px; }
+  .menu-principal-botao small { margin-top: 3px; font-size: 12px; }
+  .menu-principal-botao::after { display: none; }
+  .menu-administracao { padding: 0 12px; border-radius: 2px; background: #f5f6f3; }
+  .menu-administracao > summary { min-height: 40px; padding: 10px 0; font-size: 14px; }
+  .menu-conta > summary { min-height: 30px; padding: 5px 10px; border-radius: 2px; font-size: 12px; }
+  .editor-ambiente { border: 1px solid #8599ac; border-radius: 3px; background: #fffff3; }
+  .editor-ambiente::backdrop { background: #18283880; backdrop-filter: none; }
+  .editor-topo { padding: 8px 12px; gap: 12px; background: linear-gradient(#e5eff7, #cbdce9); border-color: #a4b7c8; }
+  .editor-topo small { color: #355476; letter-spacing: .5px; }
+  .editor-topo h2 { color: #173e70; font-size: 16px; margin: 2px 0 0; }
+  .editor-abas { gap: 3px; padding: 6px 8px 0; background: #e9ebed; border-color: #9caab8; }
+  .editor-abas button { min-height: 32px; padding: 6px 18px; background: #f0f1f2; border: 1px solid #aab3bc; border-bottom: 0; border-radius: 3px 3px 0 0; color: #294c74; font-size: 12px; }
+  .editor-abas button[aria-selected=true] { color: #173e70; background: #fffff3; border-color: #9caab8; box-shadow: inset 0 3px #315f8b; }
+  .editor-ambiente .ambiente-conteudo { padding: 10px; }
+  .ficha-grade { gap: 8px; padding: 8px; }
+  .ficha-secao { padding: 10px; border-radius: 1px; background: #fffff3; }
+  .ficha-secao > .secao-titulo { padding: 3px 6px; margin-bottom: 8px !important; font-size: 12px; }
+  .ficha-navegacao { gap: 4px; padding: 6px 8px; }
+  .ficha-ambiente .item-header { padding: 8px 10px; border-radius: 0; background: #e7edf2; }
+  .editor-ambiente .ficha-acoes { padding: 8px 12px; background: #e9ebed; border-color: #aab3bc; }
+  .editor-nota { padding: 5px 12px; background: #edf0e7; border-top: 1px solid #bdc5bc; }
+  .editor-materiais { padding: 12px; }
+}

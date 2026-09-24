@@ -8,6 +8,11 @@ No projeto Supabase usado pelo sistema, abra **SQL Editor → New query**, cole 
 
 O SQL autoriza `decoracaoeestilo@hotmail.com` como administrador. Ele NÃO cria uma senha nem uma conta no Supabase Auth.
 
+Na tela de login, `admin` é um atalho para `decoracaoeestilo@hotmail.com`.
+Use a senha dessa conta no Supabase; não existe senha padrão nem acesso sem
+autenticação. O e-mail completo continua sendo aceito. Outros usuários entram
+com seus próprios e-mails.
+
 Em **Authentication → Users**, crie a conta desse e-mail com uma senha escolhida pelo titular e o e-mail confirmado. A conta que entra no painel de administração do Supabase e a conta de usuário do seu aplicativo são cadastros diferentes. Não coloque a senha no código ou no chat.
 
 As tabelas são:
@@ -60,6 +65,23 @@ Se outro navegador salvar primeiro o mesmo grupo de dados, a gravação antiga �
 
 ## 5. Outros usuários
 
+O administrador pode criar um novo acesso em **Equipe**: preencha nome, e-mail,
+cargo (Administrador, Gerente ou Vendedor), status Ativo e a senha opcional
+(8 a 128 caracteres), depois clique em **Salvar profissional**. O login usa o
+e-mail. Sem senha, o botão salva somente o cadastro profissional. Contas existentes
+não têm sua senha, cargo ou autorização alterados por esse formulário.
+
+Para habilitar a criação, configure `SUPABASE_SECRET_KEY` (ou a chave legada
+`SUPABASE_SERVICE_ROLE_KEY`) no `.env.local` e reinicie o servidor. Na Vercel,
+adicione a variável no ambiente do servidor e publique novamente. Essa chave
+nunca deve ter prefixo `NEXT_PUBLIC_`, ser enviada pelo chat ou ir para o Git.
+A rota `/api/usuarios` verifica a sessão e o cargo do administrador antes de
+criar a conta confirmada e a autorização. A senha vai apenas para o Supabase Auth,
+sem entrar nos cadastros, backups ou rascunhos locais. A criação não envia e-mail.
+Se a autorização falhar, a rota tenta desfazer somente a conta recém-criada.
+
+Alternativamente, para criar ou administrar contas diretamente no Supabase:
+
 Cadastre cada conta em **Authentication → Users** e autorize seu e-mail no SQL Editor. Exemplo (substitua os valores):
 
 ```sql
@@ -67,7 +89,7 @@ insert into public.michele_acessos (email, nome, perfil, profissional_id)
 values ('vendedor@empresa.com', 'Nome do vendedor', 'Vendedor', 'PROF-000002');
 ```
 
-Use `Administrador`, `Gerente` ou `Vendedor`. `profissional_id` é o código do cadastro existente, necessário para a seleção automática do vendedor. Cadastrar um profissional na interface não cria uma conta Auth nem altera sua permissão no banco. Desative o acesso definindo `ativo = false` em `michele_acessos`.
+Use `Administrador`, `Gerente` ou `Vendedor`. `profissional_id` é o código do cadastro existente, necessário para a seleção automática do vendedor. Salvar um profissional sem senha não cria uma conta Auth nem altera sua permissão no banco. Desative o acesso definindo `ativo = false` em `michele_acessos`.
 
 ## Validação e limites
 
