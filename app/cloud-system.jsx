@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import { changes, dataset, equal, fingerprint, label, mergeImport, readLegacy } from '../lib/michele-data.mjs';
 import { createStore } from '../lib/michele-store.mjs';
 import './cloud.css';
+import PasswordForm from './password-form';
+import { loginEmail } from '../lib/account-password.mjs';
 
 const URL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -30,6 +32,10 @@ export default function CloudSystem({ html }) {
   const [busy, setBusy] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [recoveryNotice, setRecoveryNotice] = useState('');
+  const passwordDialog = useRef(null);
+  const recoveringPassword = useRef(false);
   const [status, setStatus] = useState({ state: 'loading', message: 'Carregando…' });
   const [profile, setProfile] = useState(null);
   const [source, setSource] = useState(null);
@@ -63,6 +69,7 @@ export default function CloudSystem({ html }) {
       usuario: { id: user.profissional_id || user.id, nome: user.nome, cargo: user.perfil,
         email: user.email, usuario: user.email, status: 'Ativo' },
       signOut,
+      alterarSenha: () => setPasswordOpen(true),
       importarBackup: chooseBackup,
       criarAcesso: async (id, password) => {
         if (!await store.current.flush()) throw new Error('Confirme o envio do profissional ao Supabase antes de criar o acesso.');
@@ -104,16 +111,29 @@ export default function CloudSystem({ html }) {
   }
   useEffect(() => {
     if (!URL_SUPABASE || !PUBLIC_KEY) { setPhase('config'); return; }
-    if (!client.current) client.current = createClient(URL_SUPABASE, PUBLIC_KEY, { auth: { detectSessionInUrl: false } });
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    if (fragment.get('type') === 'recovery') recoveringPassword.current = true;
+    if (!client.current) client.current = createClient(URL_SUPABASE, PUBLIC_KEY, { auth: { detectSessionInUrl: true } });
     const { data: subscription } = client.current.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') { recoveringPassword.current = true; setPhase('reset-password'); }
       if (event === 'SIGNED_OUT' && active.current) { active.current = false; setPhase('login'); window.location.reload(); }
     });
     client.current.auth.getSession().then(async ({ data, error }) => {
       if (error) throw error;
+      if (recoveringPassword.current && data.session) { setPhase('reset-password'); return; }
+      if (fragment.has('error') || (recoveringPassword.current && !data.session)) {
+        recoveringPassword.current = false;
+        history.replaceState(null, '', window.location.pathname);
+        setError('O link de recuperação expirou ou é inválido. Solicite outro em Esqueci minha senha.'); setPhase('login'); return;
+      }
       if (data.session) await loadAccount(); else setPhase('login');
     }).catch(e => { setError(message(e)); setPhase('error'); });
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (passwordOpen && passwordDialog.current && !passwordDialog.current.open) passwordDialog.current.showModal();
+  }, [passwordOpen]);
 
   useEffect(() => {
     if (phase !== 'ready' || started.current) return;
@@ -141,15 +161,30 @@ export default function CloudSystem({ html }) {
   async function login(event) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const identifier = loginId.trim().toLowerCase();
-      // Alias for the administrator account seeded in supabase/001_michele.sql.
-      // Authentication and authorization still run through Supabase.
-      const email = identifier === 'admin' ? 'decoracaoeestilo@hotmail.com' : identifier;
+      const email = loginEmail(loginId);
       const { error } = await client.current.auth.signInWithPassword({ email, password });
       if (error) throw new Error('Não foi possível entrar. Confira o login e a senha. A conta precisa estar cadastrada e confirmada no Supabase.');
       setPassword(''); await loadAccount();
     } catch (e) { setError(message(e)); if (!active.current) setPhase('login'); }
     finally { setBusy(false); }
+  }
+  async function requestPasswordReset(event) {
+    event.preventDefault(); setBusy(true); setError(''); setRecoveryNotice('');
+    try {
+      const email = loginEmail(loginId);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe admin ou o e-mail da sua conta.');
+      const { error } = await client.current.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      if (error) throw new Error('Não foi possível solicitar o link agora. Aguarde alguns minutos e tente novamente.');
+      setRecoveryNotice('Se a conta estiver cadastrada, você receberá um link no e-mail vinculado para escolher a senha aqui no sistema. Confira também o spam.');
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+  async function finishPasswordReset() {
+    setError('');
+    const { error } = await client.current.auth.signOut({ scope: 'local' });
+    if (error) { setError('A senha foi alterada, mas não foi possível encerrar a sessão. Tente continuar novamente.'); return; }
+    recoveringPassword.current = false;
+    setPassword(''); setRecoveryNotice('Senha alterada. Entre com sua nova senha.'); setPhase('login');
   }
   async function signOut() {
     if (store.current?.hasPending() && !await store.current.flush()) {
@@ -237,14 +272,24 @@ export default function CloudSystem({ html }) {
   </section></div>;
 
   if (phase === 'config') return <Panel><h1>Conectar ao Supabase</h1><p>Configure a URL e a chave pública do projeto nas variáveis de ambiente e publique novamente o sistema.</p></Panel>;
-  if (phase === 'boot' || phase === 'loading') return <Panel><p role="status">Conectando ao Supabase…</p></Panel>;
+  if (phase === 'boot' || phase === 'loading') return <Panel><p role="status">Abrindo o sistema…</p></Panel>;
+  if (phase === 'reset-password') return <Panel><PasswordForm auth={client.current.auth} recovery onDone={finishPasswordReset} />{error && <p role="alert" className="cloud-error">{error}</p>}</Panel>;
+  if (phase === 'forgot-password') return <Panel><h1>Recuperar minha senha</h1><p>Informe seu login. Para admin, o link será enviado ao e-mail do administrador.</p>
+    <form onSubmit={requestPasswordReset}><label>Login<input autoComplete="username" autoCapitalize="none" required value={loginId} onChange={e => setLoginId(e.target.value)} /></label>
+      {error && <p role="alert" className="cloud-error">{error}</p>}{recoveryNotice && <p role="status">{recoveryNotice}</p>}
+      <button disabled={busy}>{busy ? 'Solicitando…' : 'Enviar link de recuperação'}</button>
+      <button type="button" className="cloud-secondary" disabled={busy} onClick={() => { setError(''); setRecoveryNotice(''); setPhase('login'); }}>Voltar ao login</button></form></Panel>;
   if (phase === 'login') return <Panel><h1>Acesse sua conta</h1><p>Use admin para a conta do administrador ou informe seu e-mail.</p>
     <form onSubmit={login}><label>Login<input type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="admin ou seu e-mail" required value={loginId} onChange={e => setLoginId(e.target.value)} /></label>
       <label>Senha<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>
-      {error && <p role="alert" className="cloud-error">{error}</p>}<button disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button></form></Panel>;
+      {error && <p role="alert" className="cloud-error">{error}</p>}{recoveryNotice && <p role="status">{recoveryNotice}</p>}<button disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
+      <button type="button" className="cloud-secondary" disabled={busy} onClick={() => { setPassword(''); setError(''); setRecoveryNotice(''); setPhase('forgot-password'); }}>Esqueci minha senha</button></form></Panel>;
   if (phase === 'recovery') return <Panel><h1>Recuperar alterações pendentes</h1><p role="alert">{error}</p><p>A cópia será mantida neste computador e baixada para revisão. Depois, você poderá importá-la pelo botão Importar backup.</p><button onClick={archiveAndReload}>Baixar cópia e carregar o Supabase</button></Panel>;
   if (phase === 'error') return <Panel><h1>Não foi possível abrir o sistema</h1><p role="alert">{error}</p><div className="cloud-actions"><button onClick={() => window.location.reload()}>Tentar novamente</button><button className="cloud-secondary" onClick={signOut}>Trocar conta</button></div></Panel>;
   return <>
+    {passwordOpen && <dialog ref={passwordDialog} className="cloud-card password-dialog" aria-labelledby="password-title" onClose={() => setPasswordOpen(false)}>
+      <PasswordForm auth={client.current.auth} onDone={() => setPasswordOpen(false)} onCancel={() => setPasswordOpen(false)} />
+    </dialog>}
     {phase === 'ready' && <>
       <div className="cloud-bar" role="status" aria-live="polite"><span>{status.message}</span><div className="cloud-actions">
         {status.state === 'error' && <button onClick={() => store.current.flush()}>Tentar enviar novamente</button>}

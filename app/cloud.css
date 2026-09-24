@@ -1,3 +1,4 @@
+.password-dialog{color:#f7f5f0;max-height:calc(100dvh - 32px);overflow:auto}.password-dialog::backdrop{background:#0009}.password-dialog label{color:#f7f5f0}
 .cloud-screen,.cloud-overlay{font-family:Arial,sans-serif;color:#f7f5f0;background:#141516;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
 .cloud-card{width:min(100%,480px);padding:30px;border:1px solid #494238;border-radius:16px;background:#202122;box-sizing:border-box;line-height:1.5}
 .cloud-brand{color:#dbc18a;letter-spacing:2px;font-size:13px}.cloud-card h1{font-size:25px;margin:0 0 16px}.cloud-card p{margin:12px 0}.cloud-card label{display:block;margin:16px 0 8px}

@@ -57,6 +57,18 @@ As cópias importadas ficam em `michele_importacoes`. Importar um navegador não
 
 ## 4. Uso e recuperação
 
+Em **Minha conta → Alterar minha senha**, informe a senha atual e confirme a
+nova senha (8 a 128 caracteres). A operação altera apenas a própria conta pelo
+Supabase Auth, sem gravar senhas nos cadastros ou backups.
+
+Na entrada, **Esqueci minha senha** aceita `admin` ou o e-mail da conta. O usuário
+solicita um link por e-mail e define a senha no próprio site. Isso não cria contas
+ausentes. Configure no Supabase Auth os endereços autorizados de redirecionamento
+`https://appmichelecortinas.vercel.app` e `http://localhost:3000`, além do serviço
+de envio de e-mails. O retorno de recuperação abre a troca de senha antes de
+carregar os cadastros. Após salvar, o usuário volta ao login.
+Referência: https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail
+
 A faixa no topo informa quando os dados foram confirmados no Supabase. Enquanto houver alterações pendentes, elas são guardadas num rascunho separado neste navegador. Não limpe os dados do navegador antes da confirmação.
 
 A leitura do banco acontece ao abrir ou atualizar o sistema. Use **Atualizar dados** para consultar mudanças de outro computador; o sistema não substitui um formulário em edição automaticamente.
